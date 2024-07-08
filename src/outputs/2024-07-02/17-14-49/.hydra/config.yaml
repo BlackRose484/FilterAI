@@ -1,0 +1,7 @@
+dataset:
+  path: data/dataset.csv
+  batch_size: 32
+model:
+  name: resnet50
+  learning_rate: 0.001
+  epochs: 10

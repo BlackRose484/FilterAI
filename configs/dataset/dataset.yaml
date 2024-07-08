@@ -1,0 +1,12 @@
+defaults:
+  - transform_train: cutout.yaml
+
+data_dir: D:\Code\Python\AIFilter2\data\kaggle\working\ibug_300W_large_face_landmark_dataset
+batch_size: 32
+num_workers: 4
+pin_memory: True
+
+train_data:
+  xml_file: labels_ibug_300W_train.xml
+test_data:
+  xml_file: labels_ibug_300W_test.xml

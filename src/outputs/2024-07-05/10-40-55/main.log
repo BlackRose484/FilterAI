@@ -1,0 +1,6 @@
+[2024-07-05 10:40:55,582][__main__][INFO] - Loading data
+[2024-07-05 10:41:06,169][__main__][INFO] - Load success
+[2024-07-05 10:41:06,169][__main__][INFO] - Augmentation Data
+[2024-07-05 10:41:08,991][__main__][INFO] - Augmentation Data successful
+[2024-07-05 10:41:08,997][__main__][INFO] - Create Data for model
+[2024-07-05 10:41:09,036][__main__][INFO] - Create Data for model successful
