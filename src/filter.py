@@ -25,9 +25,7 @@ def extract_index_nparray(nparray):
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 class Filter():
-    def __init__(self, model, image=None, img_path=None, filter_path=None):
-        self.img_path = img_path
-        self.filter_path = filter_path
+    def __init__(self, model):
         self.model = model.to(device)
         self.face_detect = dlib.get_frontal_face_detector()
         self.filter_landmarks = None
@@ -37,7 +35,10 @@ class Filter():
         self.model.eval()
 
         # Covert BGR to RGB
-        image = cv.cvtColor(image, cv.COLOR_BGR2RGB)
+        try:
+            image = cv.cvtColor(image, cv.COLOR_BGR2RGB)
+        except:
+            pass
         h, w, c = image.shape
         # Process image to suitable for model
         process_image = transform_pred(image=image)
@@ -96,6 +97,46 @@ class Filter():
                     indexes_triangles.append(triangle)
         return landmarks, indexes_triangles
 
+    def get_filter_landmarks_from_csv(self, filter_cdv):
+        dt = pd.read_csv("../data/filter/csv/squid.csv", header=None)
+        x = dt[1].values
+        y = dt[2].values
+        return np.array([(x1, y1) for x1, y1 in zip(x, y)])
+
+    def get_filter_landmarks_and_delaunay_triangle_csv(self, filter, filter_csv):
+        landmarks = self.get_filter_landmarks_from_csv(filter_csv)
+        landmarks = np.array(landmarks, dtype=np.float32)
+        convexhull = cv.convexHull(landmarks)
+        bounding_box = cv.boundingRect(convexhull)
+        points = np.array(landmarks, dtype=np.int32)
+        subdiv = cv.Subdiv2D(bounding_box)
+        subdiv.insert(landmarks)
+
+        triangles = subdiv.getTriangleList()
+        triangles = np.array(triangles, dtype=np.int32)
+
+        indexes_triangles = []
+
+        for t in triangles:
+            pt1 = (t[0], t[1])
+            pt2 = (t[2], t[3])
+            pt3 = (t[4], t[5])
+
+            id_pt1 = np.where((points == pt1).all(axis=1))
+            id_pt1 = extract_index_nparray(id_pt1)
+
+            id_pt2 = np.where((points == pt2).all(axis=1))
+            id_pt2 = extract_index_nparray(id_pt2)
+
+            id_pt3 = np.where((points == pt3).all(axis=1))
+            id_pt3 = extract_index_nparray(id_pt3)
+
+            if id_pt1 is not None and id_pt2 is not None and id_pt3 is not None:
+                triangle = [id_pt1, id_pt2, id_pt3]
+                indexes_triangles.append(triangle)
+
+        return landmarks, indexes_triangles
+
     def apply_filter(self, image, filter, image_landmarks, filter_landmarks, triangle_list):
         try:
             img2 = image
@@ -127,9 +168,9 @@ class Filter():
                 # Buoc 3: Tao ra 1 mask giup xac dinh chinh xac vi tri tam giac duoc chuyen doi de khong anh huong den cac pixel khac
                 cv.fillConvexPoly(crop_image1_mask, points, 255)
                 crop_image1 = cv.bitwise_and(crop_image1, crop_image1, mask=crop_image1_mask)
-                cv.line(img, tri_pt1, tri_pt2, (0, 0, 255), 2)
-                cv.line(img, tri_pt3, tri_pt2, (0, 0, 255), 2)
-                cv.line(img, tri_pt1, tri_pt3, (0, 0, 255), 2)
+                # cv.line(img, tri_pt1, tri_pt2, (0, 0, 255), 2)
+                # cv.line(img, tri_pt3, tri_pt2, (0, 0, 255), 2)
+                # cv.line(img, tri_pt1, tri_pt3, (0, 0, 255), 2)
 
                 # Face 2
                 tri2_pt1 = landmarks_points2[triangle_index[0]]
@@ -149,9 +190,9 @@ class Filter():
                 cv.fillConvexPoly(crop_image2_mask, points2, 255)
                 crop_image2 = cv.bitwise_and(crop_image2, crop_image2, mask=crop_image2_mask)
 
-                cv.line(img2, tri2_pt1, tri2_pt2, (0, 0, 255), 2)
-                cv.line(img2, tri2_pt3, tri2_pt2, (0, 0, 255), 2)
-                cv.line(img2, tri2_pt1, tri2_pt3, (0, 0, 255), 2)
+                # cv.line(img2, tri2_pt1, tri2_pt2, (0, 0, 255), 2)
+                # cv.line(img2, tri2_pt3, tri2_pt2, (0, 0, 255), 2)
+                # cv.line(img2, tri2_pt1, tri2_pt3, (0, 0, 255), 2)
 
                 cropped_tr2_mask = np.zeros((h, w), np.uint8)
                 cv.fillConvexPoly(cropped_tr2_mask, points2, 255)
@@ -186,7 +227,6 @@ class Filter():
             seamlessclone = cv.seamlessClone(result, img2, img2_head_mask, center_face2, cv.NORMAL_CLONE)
             return seamlessclone
             # seamlessclone = cv.resize(seamlessclone, (500, 500), interpolation=cv.INTER_AREA)
-            cv.imshow("Image", img)
             # cv.imshow("Image_Face 1", face_image_1)
             # cv.imshow("Image2", img2)
             # cv.imshow("Image_Face 2", face_image_2)
@@ -199,21 +239,24 @@ class Filter():
         except:
             return image
 
-    def camera_filter(self, filter):
+    def filter_camera(self, filter, filter_csv=None):
         cap = cv.VideoCapture(0)
         while True:
             _, frame = cap.read()
-            frame = self.filter_image(img=frame, filter=filter)
+            frame = self.filter_image(img=frame, filter=filter, filter_csv=filter_csv)
 
             cv.imshow("Camera Filter", frame)
 
             if cv.waitKey(1) & 0xFF == ord('d'):
                 break
 
-    def filter_image(self, img, filter):
+    def filter_image(self, img, filter, filter_csv=None):
         faces = self.face_detect(img)
         if self.filter_landmarks is None and self.triangle_list is None:
-            self.filter_landmarks, self.triangle_list = self.get_filter_landmarks_and_delaunay_triangle(filter)
+            if filter_csv is None:
+                self.filter_landmarks, self.triangle_list = self.get_filter_landmarks_and_delaunay_triangle(filter)
+            else:
+                self.filter_landmarks, self.triangle_list = self.get_filter_landmarks_and_delaunay_triangle_csv(filter, filter_csv)
         for face in faces:
             x, y, w, h = face.left(), face.top(), face.width(), face.height()
             image_landmarks = self.detect_landmark(img[y: y + h, x: x + w])
@@ -224,12 +267,3 @@ class Filter():
             img = self.apply_filter(img, filter, image_landmarks, self.filter_landmarks, self.triangle_list)
 
         return img
-
-
-model = EfficientNetB0(68)
-model.load_state_dict(torch.load('best_model_3.pth'))
-filter_image = cv.imread("../data/filter/images/joker.jfif")
-image = cv.imread("../data/kaggle/working/ibug_300W_large_face_landmark_dataset/helen/testset/296961468_1_mirror.jpg")
-filter = Filter(model)
-filter.camera_filter(filter_image)
-cv.waitKey(0)

@@ -6,6 +6,8 @@ from torch.optim import Adam
 from torch.nn import MSELoss
 
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
+
 def train_model(model, train_data, test_data, num_epochs=35):
     best_test_loss = 1e9
     train_loss_history = []
