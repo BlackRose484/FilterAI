@@ -5,6 +5,7 @@ import os
 import torch
 from PIL import Image
 from torch.utils.data import Dataset
+from tqdm import tqdm
 
 class IDataset:
     def __init__(self, data_dir):
@@ -57,6 +58,7 @@ class IDataset:
     def get_data(self, samples, root_dir):
         images = []
         landmarks_list = []
+        samples = tqdm(samples)
         for sample in samples:
             image_path = os.path.join(root_dir, sample['filename'])
             if os.path.exists(image_path):

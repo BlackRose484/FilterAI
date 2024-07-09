@@ -2,6 +2,7 @@ import albumentations as A
 from albumentations.pytorch.transforms import ToTensorV2
 import numpy as np
 import torch
+from tqdm import tqdm
 
 transform_train = A.Compose([
     A.ShiftScaleRotate(shift_limit=0.05, scale_limit=0.05, rotate_limit=15, p=0.5),
@@ -34,7 +35,7 @@ class DataAugment():
         final_images = []
         final_landmarks = []
 
-        for i in range(len(images)):
+        for i in tqdm(range(len(images))):
             img = images[i]
             ldm = landmarks[i]
 
