@@ -13,8 +13,7 @@ from torch.utils.data import DataLoader
 from omegaconf import DictConfig
 from src.train import *
 from torchsummary import summary
-from src.FaceDetection import *
-from src.Filter import *
+from src.filter import *
 import matplotlib.pyplot as plt
 
 logger = logging.getLogger(__name__)
