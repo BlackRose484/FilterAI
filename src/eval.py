@@ -11,14 +11,16 @@ model.load_state_dict(torch.load('../data/models/best_model_3.pth'))
 
 # Get image, filter
 image = cv.imread("../data/kaggle/working/ibug_300W_large_face_landmark_dataset/helen/trainset/232194_1.jpg")
-filter_image = cv.imread("../data/filter/images/joker.jfif")
+# Change filter_image and filter_csv to your own
+filter_image = cv.imread("../data/filter/images/squid.png")
 filter_csv = "../data/filter/csv/squid.csv"
 
 # Create Filter App
 filterApp = Filter(model=model)
 
 # Filter An Image
-image_filter = filterApp.filter_image(img=image, filter=filter_image)
+image_filter = filterApp.filter_image(img=image, filter=filter_image, filter_csv=filter_csv)
+image_filter = cv.resize(image_filter, (500, 500), interpolation=cv.INTER_AREA)
 cv.imshow("Image", image_filter)
 
 # Filter With camera
